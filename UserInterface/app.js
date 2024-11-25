@@ -1,16 +1,13 @@
 document.addEventListener('DOMContentLoaded', function () {
   const app = document.getElementById('app');
 
-  // Mock user data (to be replaced with API response later)
   let userData = null;
 
-  // Static transaction data as fallback
   const staticTransactions = [
     { date: '2024-01-01', description: 'Deposit', amount: '$500' },
     { date: '2024-01-02', description: 'Withdrawal', amount: '$100' },
   ];
 
-  // Render the login form
   function renderLoginForm() {
     app.innerHTML = `
       <h1>Welcome to MyBank</h1>
@@ -29,43 +26,21 @@ document.addEventListener('DOMContentLoaded', function () {
     loginForm.addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      // Get user inputs
       const userId = document.getElementById('userId').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      // If password is "admin", directly render the dashboard
-      // if (password === 'admin') {
-      //   userData = {
-      //     name: 'Admin User',
-      //     email,
-      //     userId,
-      //     accountNumber: '1234567890',
-      //   };
-      //   renderDashboard();
-      //   return;
-      // }
-
       try {
-        // Send POST request to /login
         const response = await fetch('http://localhost:8080/login', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body : JSON.stringify({
-            user_id : userId,
-            email,
-            password
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, email, password }),
         });
 
         if (response.ok) {
-          // Parse the response JSON
-          userData = await response.json();
+          userData = (await response.json()).data;
           renderDashboard();
         } else {
-          // Handle login failure
           errorMessage.style.display = 'block';
         }
       } catch (error) {
@@ -75,15 +50,31 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Render the user dashboard
   async function renderDashboard() {
     app.innerHTML = `
       <h1>Welcome, ${userData.name}</h1>
       <div class="dashboard">
-        <p><strong>Email:</strong> ${userData.email}</p>
-        <p><strong>User ID:</strong> ${userData.userId}</p>
-        <p><strong>Account Number:</strong> ${userData.accountNumber}</p>
+        <table class="user-table">
+          <tr>
+            <th>Email:</th>
+            <td>${userData.email}</td>
+          </tr>
+          <tr>
+            <th>User ID:</th>
+            <td>${userData.user_id}</td>
+          </tr>
+          <tr>
+            <th>Account Number:</th>
+            <td>${userData.accountNumber}</td>
+          </tr>
+          <tr>
+            <th>Current Balance:</th>
+            <td>$${userData.balance}</td>
+          </tr>
+        </table>
       </div>
+      <button id="sendMoneyButton">Send Money</button>
+      <div id="sendMoneyFormContainer"></div>
       <div class="table-container">
         <h2>Transaction History</h2>
         <p>Loading transactions...</p>
@@ -91,32 +82,24 @@ document.addEventListener('DOMContentLoaded', function () {
       <button id="logout">Logout</button>
     `;
 
-    const logoutButton = document.getElementById('logout');
-    logoutButton.addEventListener('click', function () {
-      userData = null; // Clear user data
+    document.getElementById('logout').addEventListener('click', function () {
+      userData = null;
       renderLoginForm();
     });
 
-    // Fetch transactions
+    document.getElementById('sendMoneyButton').addEventListener('click', openSendMoneyForm);
+
     try {
       const transactionsResponse = await fetch(
         `http://localhost:8080/transactions?email=${encodeURIComponent(userData.email)}&userId=${encodeURIComponent(userData.userId)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
       );
 
-      let transactions = staticTransactions; // Default to static data
-
+      let transactions = staticTransactions;
       if (transactionsResponse.ok) {
-        // Parse the transactions if the response is OK
         transactions = await transactionsResponse.json();
       }
 
-      // Render transactions
       renderTransactions(transactions);
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -124,7 +107,86 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Render transaction history
+  function openSendMoneyForm() {
+    const sendMoneyButton = document.getElementById('sendMoneyButton');
+    sendMoneyButton.disabled = true;
+  
+    const formContainer = document.getElementById('sendMoneyFormContainer');
+    formContainer.innerHTML = `
+      <table class="send-money-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <tbody>
+          <tr>
+            <td><label for="receiverId">Receiver ID:</label></td>
+            <td><input type="text" id="receiverId" placeholder="Receiver ID" required style="width: 100%; padding: 5px;" /></td>
+          </tr>
+          <tr>
+            <td><label for="receiverEmail">Receiver Email:</label></td>
+            <td><input type="email" id="receiverEmail" placeholder="Receiver Email" required style="width: 100%; padding: 5px;" /></td>
+          </tr>
+          <tr>
+            <td><label for="receiverAccount">Receiver Account Number:</label></td>
+            <td><input type="text" id="receiverAccount" placeholder="Receiver Account Number" required style="width: 100%; padding: 5px;" /></td>
+          </tr>
+          <tr>
+            <td><label for="amount">Amount to Send:</label></td>
+            <td><input type="number" id="amount" placeholder="Amount to Send" required min="1" style="width: 100%; padding: 5px;" /></td>
+          </tr>
+          <tr>
+            <td><label for="confirm">Confirm Transaction:</label></td>
+            <td>
+              <input type="checkbox" id="confirm" name="confirm" style="margin-right: 10px;" />
+              <label for="confirm">I confirm the transaction</label>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="text-align: right; padding-top: 10px;">
+              <button type="submit" id="sendNowButton" disabled style="margin-right: 10px; padding: 10px 15px;">Send Now</button>
+              <button type="button" id="cancelButton" style="padding: 10px 15px;">Cancel</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p id="errorMessage" style="color: red; display: none; margin-top: 10px;">Insufficient balance!</p>
+    `;
+  
+    const confirmCheckbox = document.getElementById('confirm');
+    const sendNowButton = document.getElementById('sendNowButton');
+    const cancelButton = document.getElementById('cancelButton');
+  
+    confirmCheckbox.addEventListener('change', function () {
+      sendNowButton.disabled = !this.checked;
+    });
+  
+    const sendMoneyForm = formContainer.querySelector('.send-money-table');
+    sendNowButton.addEventListener('click', function (e) {
+      e.preventDefault();
+  
+      const amount = parseFloat(document.getElementById('amount').value);
+      if (amount > userData.balance) {
+        document.getElementById('errorMessage').style.display = 'block';
+      } else {
+        const payload = {
+          receiverId: document.getElementById('receiverId').value,
+          receiverEmail: document.getElementById('receiverEmail').value,
+          receiverAccount: document.getElementById('receiverAccount').value,
+          amount,
+        };
+  
+        console.log('Simulated API Call Payload:', payload);
+        alert(`$${amount} sent successfully!`);
+        closeSendMoneyForm();
+      }
+    });
+  
+    cancelButton.addEventListener('click', closeSendMoneyForm);
+  
+    function closeSendMoneyForm() {
+      formContainer.innerHTML = '';
+      sendMoneyButton.disabled = false;
+    }
+  }
+  
+  
   function renderTransactions(transactions) {
     const tableContainer = document.querySelector('.table-container');
     tableContainer.innerHTML = `
@@ -154,6 +216,5 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
   }
 
-  // Initial render
   renderLoginForm();
 });
