@@ -162,7 +162,7 @@ First let us create a database inside any one of the router with 2 collections i
 
 ```db.createColeltion("transactions")``` - To create transactions collection
 
-```sh.shardCollection("bank.users",{"user_id":"hashed"});``` - To shard users collection
+```sh.shardCollection("bank.users",{"user_id":"1"});``` - To shard users collection
 
-```sh.shardCollection("bank.transactions",{"transaction_id":"hashed"});``` - To shard transactions colletion
+```sh.shardCollection("bank.transactions",{"transaction_id":"1"});``` - To shard transactions colletion
 

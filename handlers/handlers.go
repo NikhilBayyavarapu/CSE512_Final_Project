@@ -4,6 +4,7 @@ import (
 	"context"
 	"cse512/db"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -20,16 +21,16 @@ type Response struct {
 
 // HandleLogin processes user login requests
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
-	// Allow CORS
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Content-Type", "application/json")
 
-	// Check if the request method is POST
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		json.NewEncoder(w).Encode(Response{
@@ -39,22 +40,28 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse form data
-	if err := r.ParseForm(); err != nil {
+	var credentials struct {
+		UserID   string `json:"user_id"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&credentials)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(Response{
 			Status:  "error",
-			Message: "Failed to parse form data.",
+			Message: "Failed to parse JSON.",
 		})
 		return
 	}
 
-	// Extract user data from the request
-	userID := r.FormValue("user_id")
-	email := r.FormValue("email")
-	password := r.FormValue("password")
+	userID := credentials.UserID
+	email := credentials.Email
+	password := credentials.Password
 
-	// Validate required fields
+	fmt.Println("Received login request for user:", userID, "with email:", email, "and password:", password)
+
 	if userID == "" || email == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(Response{
@@ -64,7 +71,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Database connection and user lookup
+	// Continue with database lookup and validation...
 	client := db.GetClient()
 	collection := client.Database("bank").Collection("users")
 
@@ -72,7 +79,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	var result bson.M
 	user_id, _ := strconv.Atoi(userID)
 
-	err := collection.FindOne(context.Background(), bson.M{"user_id": user_id}).Decode(&result)
+	err = collection.FindOne(context.Background(), bson.M{"user_id": user_id}).Decode(&result)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(Response{
