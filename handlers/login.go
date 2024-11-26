@@ -120,6 +120,8 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Data: map[string]any{
 			"user_id": userID,
 			"email":   email,
+			"name":    result["first_name"].(string) + " " + result["last_name"].(string),
+			"balance": result["current_balance"],
 		},
 	})
 }
