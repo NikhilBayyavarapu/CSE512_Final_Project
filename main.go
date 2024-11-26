@@ -13,6 +13,7 @@ func main() {
 
 	router.HandleFunc("/login", handlers.HandleLogin).Methods("POST", "OPTIONS")
 	router.HandleFunc("/transactions", handlers.HandleTransaction).Methods("GET", "OPTIONS")
+	router.HandleFunc("/transaction", handlers.PerformTransaction).Methods("POST", "OPTIONS")
 
 	fmt.Println("Starting server on port 8080")
 	if err := http.ListenAndServe(":8080", router); err != nil {
