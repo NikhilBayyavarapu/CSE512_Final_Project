@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (response.ok) {
           userData = (await response.json()).data;
           userData.user_id = userId;
+          userData.password = password ;
           renderDashboard();
         } else {
           errorMessage.style.display = 'block';
@@ -95,6 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('sendMoneyButton').addEventListener('click', openSendMoneyForm);
 
     try {
+      console.log(userData) ;
       const transactionsResponse = await fetch(
         `http://localhost:8080/transactions?sender_id=${userData.user_id}`,
         { method: 'GET', headers: { 'Content-Type': 'application/json' } }
@@ -122,12 +124,12 @@ document.addEventListener('DOMContentLoaded', function () {
         <tr>
           <td><label for="receiverName">Receiver Name:</label></td>
           <td><input type="text" id="receiverName" placeholder="Receiver's Name" required /></td>
-          <td><span id="receiverNameError" style="color: red; display: none;">Name is required</span></td>
+          <td><span id="receiverNameError" style="color: red; display: none;">This field is required</span></td>
         </tr>
         <tr>
           <td><label for="receiverId">Receiver ID:</label></td>
-          <td><input type="text" id="receiverId" placeholder="Receiver's ID" required /></td>
-          <td><span id="receiverIdError" style="color: red; display: none;">Must be valid user id</span></td>
+          <td><input type="text" id="receiverId" placeholder="Receiver's User ID" required /></td>
+          <td><span id="receiverIdError" style="color: red; display: none;">This field is required and must be a positive number</span></td>
         </tr>
         <tr>
           <td><label for="receiverEmail">Receiver Email:</label></td>
@@ -135,14 +137,14 @@ document.addEventListener('DOMContentLoaded', function () {
           <td><span id="receiverEmailError" style="color: red; display: none;">Please enter a valid email</span></td>
         </tr>
         <tr>
-          <td><label for="receiverAccount">Account Number:</label></td>
-          <td><input type="text" id="receiverAccount" placeholder="Account Number" required /></td>
-          <td><span id="receiverAccountError" style="color: red; dispay: none;">Enter Valid Account Number</span></td>
+          <td><label for="receiverAccount">Receiver Account Number:</label></td>
+          <td><input type="text" id="receiverAccount" placeholder="Receiver's Account Number" required /></td>
+          <td><span id="receiverAccountError" style="color: red; display: none;">This field is required and must be a positive number</span></td>
         </tr>
         <tr>
           <td><label for="amount">Amount to Send:</label></td>
           <td><input type="number" id="amount" placeholder="Amount" required min="0.01" /></td>
-          <td><span id="amountError" style="color: red; display: none;">Enter valid transaction amount</span></td>
+          <td><span id="amountError" style="color: red; display: none;">Amount must be greater than 0 and less than or equal to your balance</span></td>
         </tr>
         <tr>
           <td><input type="checkbox" id="confirm" /> I confirm this transaction</td>
@@ -177,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   
     // Form validation on the "Send Now" button click
-    sendNowButton.addEventListener('click', function (e) {
+    sendNowButton.addEventListener('click', async function (e) {
       e.preventDefault();
   
       // Reset error messages
@@ -214,41 +216,74 @@ document.addEventListener('DOMContentLoaded', function () {
         amountError.style.display = 'inline';
         isValid = false;
       }
-      if (!confirmCheckbox.checked) {
-        confirmError.style.display = 'inline';
-        isValid = false;
+      // If all validations pass
+      if (isValid) {
+        // Show confirmation popup
+        const confirmation = window.confirm(
+          `Are you sure you want to send $${amount.toFixed(2)} to ${receiverNameInput.value}?`
+        );
+  
+        if (confirmation) {
+          // Prepare the payload for the transaction
+          const payload = {
+            sender_id: parseInt(userData.user_id),
+            receiver_id: receiverId,
+            account_number: receiverAccount,
+            amount: amount,
+            remarks: `Transfer of $${amount.toFixed(2)} from ${userData.name} to ${receiverNameInput.value}`,
+            dateTimeStamp: Math.floor(Date.now() / 1000), // Current Unix timestamp
+          };
+  
+          try {
+            // Hit the /handletransaction API
+            const response = await fetch('http://localhost:8080/transaction', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+  
+            if (response.ok) {
+              alert('Transaction completed successfully!');
+              formContainer.innerHTML = '';
+              // After transaction, refresh the transactions and dashboard
+              await fetchTransactionsAndUpdateState();
+            } else {
+              alert('Transaction failed. Please try again.');
+            }
+          } catch (error) {
+            console.error('Error during transaction:', error);
+            alert('Transaction failed. Please try again.');
+          }
+        } else {
+          alert('Transaction canceled.');
+        }
       }
-  
-      if (!isValid) return;
-  
-      const payload = {
-        receiverName: receiverNameInput.value,
-        receiverId: receiverIdInput.value,
-        receiverEmail: receiverEmailInput.value,
-        receiverAccount: receiverAccountInput.value,
-        amount,
-      };
-  
-      console.log('Simulated API Call Payload:', payload);
-      alert(`$${amount} sent successfully!`);
-      closeSendMoneyForm();
     });
   
-    cancelButton.addEventListener('click', closeSendMoneyForm);
-  
-    function closeSendMoneyForm() {
+    cancelButton.addEventListener('click', function () {
       formContainer.innerHTML = '';
       sendMoneyButton.disabled = false;
-    }
-  
-    // Email validation function
-    function validateEmail(email) {
-      const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      return regex.test(email);
+    });
+  }
+
+  async function fetchTransactionsAndUpdateState() {
+    try {
+      // Fetch updated user data and transactions
+      const user_id = userData.user_id ;
+      const userResponse = await fetch('http://localhost:8080/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userData.user_id, email: userData.email, password: userData.password }),
+      });
+      if (userResponse.ok) {
+        let userDetail = await userResponse.json();
+        userData.balance = userDetail.data.balance ; 
+        renderDashboard(); // Refresh the dashboard
+      }
+    } catch (error) {
+      console.error('Error fetching updated data:', error);
     }
   }
-  
-  
   
 
   function renderTransactions(transactions) {
@@ -291,6 +326,10 @@ document.addEventListener('DOMContentLoaded', function () {
         </tbody>
       </table>
     `;
+  }
+  function validateEmail(email) {
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(String(email).toLowerCase());
   }
 
   renderLoginForm();

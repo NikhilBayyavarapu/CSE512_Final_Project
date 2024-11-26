@@ -21,6 +21,14 @@ function randomDate(start, end) {
 // Transaction types
 const transactionTypes = ["transfer", "deposit", "withdrawal"];
 
+// Function to format amount as currency
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+    }).format(amount);
+}
+
 // Generate and write transactions in batches
 function generateTransactions(numTransactions, batchSize) {
     const startDate = new Date(2022, 0, 1); // January 1, 2022
@@ -43,20 +51,26 @@ function generateTransactions(numTransactions, batchSize) {
             let receiverId = txnType === "transfer" ? userIds[Math.floor(Math.random() * userIds.length)] : senderId;
             let amount = Math.floor(Math.random() * (15000 - 500 + 1)) + 500;
             const timestamp = Math.floor(randomDate(startDate, endDate).getTime() / 1000); // Unix timestamp in seconds
-            const status = Math.random() < 0.02 ? "failed" : "completed";
+            let status = "completed"; // Default status is "completed"
+            
+            // Only set "failed" for transfer transactions
+            if (txnType === "transfer" && Math.random() < 0.02) {
+                status = "failed";
+            }
+
             const senderName = userMap[senderId];
             const receiverName = userMap[receiverId];
 
             let remarks;
             if (txnType === "deposit") {
-                remarks = `Deposit of ${amount} by ${senderName}`;
+                remarks = `Deposit of ${formatCurrency(amount)} by ${senderName}`;
                 receiverId = senderId; // Same user ID for deposit
             } else if (txnType === "withdrawal") {
-                remarks = `Withdrawal of ${amount} by ${senderName}`;
+                remarks = `Withdrawal of ${formatCurrency(amount)} by ${senderName}`;
                 receiverId = senderId; // Same user ID for withdrawal
                 amount = -amount; // Withdrawal amount as negative
             } else { // Transfer
-                remarks = `Transfer of ${amount} from ${senderName} to ${receiverName}`;
+                remarks = `Transfer of ${formatCurrency(amount)} from ${senderName} to ${receiverName}`;
             }
 
             const transaction = {
