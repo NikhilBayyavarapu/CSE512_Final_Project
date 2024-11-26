@@ -1,51 +1,67 @@
+/* General body styles */
 body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
+  background-color: #e6f0f9; /* Light blue background */
   color: #333;
 }
 
+/* Main container */
 #app {
   max-width: 600px;
   margin: 50px auto;
   padding: 20px;
-  background: #fff;
+  background: #ffffff; /* White background */
   border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
+/* Header */
 h1 {
   text-align: center;
-  color: #4CAF50;
+  color: #0066cc; /* SBI-like dark blue */
+  font-size: 32px;
+  font-weight: bold;
 }
 
+/* Button Styles */
 button {
   display: block;
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-top: 20px;
-  background-color: #4CAF50;
+  background-color: #0066cc; /* Blue background */
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-size: 16px;
+  transition: background-color 0.3s ease-in-out; /* Smooth hover transition */
 }
 
 button:hover {
-  background-color: #45a049;
+  background-color: #005bb5; /* Darker blue on hover */
 }
 
+/* Form Input Styles */
 form input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin: 10px 0;
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 16px;
+  background-color: #f9f9f9; /* Light background for inputs */
 }
 
+form input:focus {
+  border-color: #0066cc; /* Blue border on focus */
+  outline: none;
+  background-color: #ffffff; /* White background on focus */
+}
+
+/* Dashboard */
 .dashboard {
   margin-top: 20px;
 }
@@ -54,6 +70,7 @@ form input {
   margin-top: 20px;
 }
 
+/* Transaction Table Styles */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -69,34 +86,79 @@ table td {
 }
 
 table th {
-  background-color: #4CAF50;
+  background-color: #0066cc; /* Dark blue header */
   color: white;
   text-align: center;
 }
 
 table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: #f1f9fd; /* Lighter blue for even rows */
 }
 
 table tr:nth-child(odd) {
-  background-color: #fff;
+  background-color: #ffffff;
 }
 
 table tr:hover {
-  background-color: #f1f1f1;
+  background-color: #d0e7ff; /* Light blue on hover */
 }
 
+/* User Info Section */
 .user-info h2 {
-  color: #4CAF50;
+  color: #0066cc;
   margin-bottom: 10px;
   text-align: center;
+  font-size: 24px;
 }
 
 .user-table th {
-  text-align: left; /* Align user info headers to the left for consistency */
+  text-align: left;
   width: 30%; /* Adjust width for a cleaner layout */
 }
 
 .user-table td {
   width: 70%;
+}
+
+/* Login Form Styling */
+#loginForm input {
+  width: 80%;
+  margin-left: 10%;
+  margin-right: 10%;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  transition: border-color 0.3s ease-in-out;
+}
+
+#loginForm input:focus {
+  border-color: #0066cc;
+  outline: none;
+  background-color: #ffffff;
+}
+
+/* Error Message Styling */
+#errorMessage {
+  color: red;
+  text-align: center;
+  display: none;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+/* Footer or Logout Button Styling */
+#logout {
+  background-color: #ff6f61; /* Red for logout button */
+  color: white;
+  border-radius: 5px;
+  padding: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+#logout:hover {
+  background-color: #e65a50; /* Darker red on hover */
 }

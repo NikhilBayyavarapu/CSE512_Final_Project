@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (response.ok) {
           userData = (await response.json()).data;
-          userData.user_id = userId ;
+          userData.user_id = userId;
           renderDashboard();
         } else {
           errorMessage.style.display = 'block';
@@ -52,6 +52,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function renderDashboard() {
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    });
     app.innerHTML = `
       <h1>Welcome, ${userData.name}</h1>
       <div class="dashboard">
@@ -70,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
           </tr>
           <tr>
             <th>Current Balance:</th>
-            <td>$${userData.balance}</td>
+            <td>${formatter.format(userData.balance)}</td>
           </tr>
         </table>
       </div>
@@ -92,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       const transactionsResponse = await fetch(
-        `http://localhost:8080/transactions?user_id=${userData.user_id}&email=${userData.email}`,
+        `http://localhost:8080/transactions?sender_id=${userData.user_id}`,
         { method: 'GET', headers: { 'Content-Type': 'application/json' } }
       );
 
@@ -114,69 +118,120 @@ document.addEventListener('DOMContentLoaded', function () {
   
     const formContainer = document.getElementById('sendMoneyFormContainer');
     formContainer.innerHTML = `
-      <table class="send-money-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-        <tbody>
-          <tr>
-            <td><label for="receiverId">Receiver ID:</label></td>
-            <td><input type="text" id="receiverId" placeholder="Receiver ID" required style="width: 100%; padding: 5px;" /></td>
-          </tr>
-          <tr>
-            <td><label for="receiverEmail">Receiver Email:</label></td>
-            <td><input type="email" id="receiverEmail" placeholder="Receiver Email" required style="width: 100%; padding: 5px;" /></td>
-          </tr>
-          <tr>
-            <td><label for="receiverAccount">Receiver Account Number:</label></td>
-            <td><input type="text" id="receiverAccount" placeholder="Receiver Account Number" required style="width: 100%; padding: 5px;" /></td>
-          </tr>
-          <tr>
-            <td><label for="amount">Amount to Send:</label></td>
-            <td><input type="number" id="amount" placeholder="Amount to Send" required min="1" style="width: 100%; padding: 5px;" /></td>
-          </tr>
-          <tr>
-            <td><label for="confirm">Confirm Transaction:</label></td>
-            <td>
-              <input type="checkbox" id="confirm" name="confirm" style="margin-right: 10px;" />
-              <label for="confirm">I confirm the transaction</label>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="2" style="text-align: right; padding-top: 10px;">
-              <button type="submit" id="sendNowButton" disabled style="margin-right: 10px; padding: 10px 15px;">Send Now</button>
-              <button type="button" id="cancelButton" style="padding: 10px 15px;">Cancel</button>
-            </td>
-          </tr>
-        </tbody>
+      <table>
+        <tr>
+          <td><label for="receiverName">Receiver Name:</label></td>
+          <td><input type="text" id="receiverName" placeholder="Receiver's Name" required /></td>
+          <td><span id="receiverNameError" style="color: red; display: none;">Name is required</span></td>
+        </tr>
+        <tr>
+          <td><label for="receiverId">Receiver ID:</label></td>
+          <td><input type="text" id="receiverId" placeholder="Receiver's ID" required /></td>
+          <td><span id="receiverIdError" style="color: red; display: none;">Must be valid user id</span></td>
+        </tr>
+        <tr>
+          <td><label for="receiverEmail">Receiver Email:</label></td>
+          <td><input type="email" id="receiverEmail" placeholder="Receiver's Email" required /></td>
+          <td><span id="receiverEmailError" style="color: red; display: none;">Please enter a valid email</span></td>
+        </tr>
+        <tr>
+          <td><label for="receiverAccount">Account Number:</label></td>
+          <td><input type="text" id="receiverAccount" placeholder="Account Number" required /></td>
+          <td><span id="receiverAccountError" style="color: red; dispay: none;">Enter Valid Account Number</span></td>
+        </tr>
+        <tr>
+          <td><label for="amount">Amount to Send:</label></td>
+          <td><input type="number" id="amount" placeholder="Amount" required min="0.01" /></td>
+          <td><span id="amountError" style="color: red; display: none;">Enter valid transaction amount</span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" id="confirm" /> I confirm this transaction</td>
+          <td></td>
+          <td><span id="confirmError" style="color: red; display: none;">You must confirm the transaction</span></td>
+        </tr>
       </table>
-      <p id="errorMessage" style="color: red; display: none; margin-top: 10px;">Insufficient balance!</p>
+      <div style="margin-top: 10px;">
+        <button id="sendNowButton" disabled>Send Now</button>
+        <button id="cancelButton">Cancel</button>
+      </div>
     `;
   
     const confirmCheckbox = document.getElementById('confirm');
     const sendNowButton = document.getElementById('sendNowButton');
     const cancelButton = document.getElementById('cancelButton');
+    const amountInput = document.getElementById('amount');
+    const receiverIdInput = document.getElementById('receiverId');
+    const receiverEmailInput = document.getElementById('receiverEmail');
+    const receiverAccountInput = document.getElementById('receiverAccount');
+    const receiverNameInput = document.getElementById('receiverName');
+    const receiverNameError = document.getElementById('receiverNameError');
+    const receiverIdError = document.getElementById('receiverIdError');
+    const receiverEmailError = document.getElementById('receiverEmailError');
+    const receiverAccountError = document.getElementById('receiverAccountError');
+    const amountError = document.getElementById('amountError');
+    const confirmError = document.getElementById('confirmError');
   
     confirmCheckbox.addEventListener('change', function () {
       sendNowButton.disabled = !this.checked;
+      confirmError.style.display = this.checked ? 'none' : 'inline';
     });
   
-    const sendMoneyForm = formContainer.querySelector('.send-money-table');
+    // Form validation on the "Send Now" button click
     sendNowButton.addEventListener('click', function (e) {
       e.preventDefault();
   
-      const amount = parseFloat(document.getElementById('amount').value);
-      if (amount > userData.balance) {
-        document.getElementById('errorMessage').style.display = 'block';
-      } else {
-        const payload = {
-          receiverId: document.getElementById('receiverId').value,
-          receiverEmail: document.getElementById('receiverEmail').value,
-          receiverAccount: document.getElementById('receiverAccount').value,
-          amount,
-        };
+      // Reset error messages
+      receiverNameError.style.display = 'none';
+      receiverIdError.style.display = 'none';
+      receiverEmailError.style.display = 'none';
+      receiverAccountError.style.display = 'none';
+      amountError.style.display = 'none';
+      confirmError.style.display = 'none';
   
-        console.log('Simulated API Call Payload:', payload);
-        alert(`$${amount} sent successfully!`);
-        closeSendMoneyForm();
+      let isValid = true;
+  
+      // Validate all fields
+      if (!receiverNameInput.value) {
+        receiverNameError.style.display = 'inline';
+        isValid = false;
       }
+      const receiverId = parseFloat(receiverIdInput.value);
+      if (!receiverId || receiverId <= 0) {
+        receiverIdError.style.display = 'inline';
+        isValid = false;
+      }
+      if (!receiverEmailInput.value || !validateEmail(receiverEmailInput.value)) {
+        receiverEmailError.style.display = 'inline';
+        isValid = false;
+      }
+      const receiverAccount = parseFloat(receiverAccountInput.value);
+      if (!receiverAccount || receiverAccount <= 0) {
+        receiverAccountError.style.display = 'inline';
+        isValid = false;
+      }
+      const amount = parseFloat(amountInput.value);
+      if (!amount || amount <= 0 || amount > userData.balance) {
+        amountError.style.display = 'inline';
+        isValid = false;
+      }
+      if (!confirmCheckbox.checked) {
+        confirmError.style.display = 'inline';
+        isValid = false;
+      }
+  
+      if (!isValid) return;
+  
+      const payload = {
+        receiverName: receiverNameInput.value,
+        receiverId: receiverIdInput.value,
+        receiverEmail: receiverEmailInput.value,
+        receiverAccount: receiverAccountInput.value,
+        amount,
+      };
+  
+      console.log('Simulated API Call Payload:', payload);
+      alert(`$${amount} sent successfully!`);
+      closeSendMoneyForm();
     });
   
     cancelButton.addEventListener('click', closeSendMoneyForm);
@@ -185,9 +240,17 @@ document.addEventListener('DOMContentLoaded', function () {
       formContainer.innerHTML = '';
       sendMoneyButton.disabled = false;
     }
+  
+    // Email validation function
+    function validateEmail(email) {
+      const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      return regex.test(email);
+    }
   }
   
   
+  
+
   function renderTransactions(transactions) {
     const tableContainer = document.querySelector('.table-container');
     tableContainer.innerHTML = `
@@ -198,19 +261,32 @@ document.addEventListener('DOMContentLoaded', function () {
             <th>Date</th>
             <th>Description</th>
             <th>Amount</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           ${transactions
-            .map(
-              (txn) => `
+            .map((txn) => {
+              let amount = txn.amount;
+
+              // Check if the transaction is a transfer and the current user is the sender
+              if (txn.remarks.includes("Transfer") && txn.remarks.includes(`from ${userData.name}`)) {
+                amount = -Math.abs(txn.amount); // Make the amount negative if the user is the sender
+              }
+
+              // Format the amount for display
+              const amountStyle = amount < 0 ? 'color: red;' : '';
+              const statusIcon = txn.status === 'completed' ? '✔' : '✘';
+
+              return `
                 <tr>
-                  <td>${txn.date}</td>
-                  <td>${txn.description}</td>
-                  <td>${txn.amount}</td>
+                  <td>${new Date(txn.dateTimeStamp * 1000).toLocaleDateString()}</td>
+                  <td>${txn.remarks}</td>
+                  <td style="${amountStyle}">${amount < 0 ? '-' : ''}$${Math.abs(amount)}</td>
+                  <td style="text-align: center;">${statusIcon}</td>
                 </tr>
-              `
-            )
+              `;
+            })
             .join('')}
         </tbody>
       </table>
