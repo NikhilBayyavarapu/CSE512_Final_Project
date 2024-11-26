@@ -4,8 +4,8 @@ import (
 	"context"
 	"cse512/db"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -40,24 +40,29 @@ func HandleTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the request body
-	var user struct {
-		SenderID int `json:"sender_id"`
-	}
-
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		fmt.Println(err)
+	// Extract sender_id from URL query parameters
+	senderIDStr := r.URL.Query().Get("sender_id")
+	if senderIDStr == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(TransactionResponse{
 			Status:  "error",
 			Amount:  0,
-			Remarks: "Failed to parse JSON.",
+			Remarks: "Missing sender_id in query parameters.",
 		})
 		return
 	}
 
-	userID := user.SenderID
+	// Convert sender_id to integer
+	userID, err := strconv.Atoi(senderIDStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(TransactionResponse{
+			Status:  "error",
+			Amount:  0,
+			Remarks: "Invalid sender_id format.",
+		})
+		return
+	}
 
 	// Database query setup
 	client := db.GetClient()
