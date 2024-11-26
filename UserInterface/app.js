@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (response.ok) {
           userData = (await response.json()).data;
+          userData.user_id = userId ;
           renderDashboard();
         } else {
           errorMessage.style.display = 'block';
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       const transactionsResponse = await fetch(
-        `http://localhost:8080/transactions?email=${encodeURIComponent(userData.email)}&userId=${encodeURIComponent(userData.userId)}`,
+        `http://localhost:8080/transactions?user_id=${userData.user_id}&email=${userData.email}`,
         { method: 'GET', headers: { 'Content-Type': 'application/json' } }
       );
 
