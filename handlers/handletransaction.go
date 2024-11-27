@@ -12,8 +12,9 @@ import (
 
 // Response structure for sending API responses
 type Transaction struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status         string `json:"status"`
+	Message        string `json:"message"`
+	UpdatedBalance int    `json:"updated_balance"`
 }
 
 // PerformTransaction handles a transaction between sender and receiver (withdraw, deposit, or transfer)
@@ -91,14 +92,16 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 		if err == mongo.ErrNoDocuments {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(Transaction{
-				Status:  "error",
-				Message: "Sender not found.",
+				Status:         "error",
+				Message:        "Sender not found.",
+				UpdatedBalance: sender.Balance,
 			})
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(Transaction{
-				Status:  "error",
-				Message: "Failed to fetch sender's data.",
+				Status:         "error",
+				Message:        "Failed to fetch sender's data.",
+				UpdatedBalance: sender.Balance,
 			})
 		}
 		return
@@ -118,8 +121,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 	if sender.Balance < amount && senderID != receiverID {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(Transaction{
-			Status:  "error",
-			Message: "Insufficient balance.",
+			Status:         "error",
+			Message:        "Insufficient balance.",
+			UpdatedBalance: sender.Balance,
 		})
 		return
 	}
@@ -134,14 +138,16 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 		if err == mongo.ErrNoDocuments {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(Transaction{
-				Status:  "error",
-				Message: "Receiver not found.",
+				Status:         "error",
+				Message:        "Receiver not found.",
+				UpdatedBalance: sender.Balance,
 			})
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(Transaction{
-				Status:  "error",
-				Message: "Failed to fetch receiver's data.",
+				Status:         "error",
+				Message:        "Failed to fetch receiver's data.",
+				UpdatedBalance: sender.Balance,
 			})
 		}
 		return
@@ -162,8 +168,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Transaction{
-			Status:  "error",
-			Message: "Failed to start session.",
+			Status:         "error",
+			Message:        "Failed to start session.",
+			UpdatedBalance: sender.Balance,
 		})
 		return
 	}
@@ -174,8 +181,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Transaction{
-			Status:  "error",
-			Message: "Failed to start transaction.",
+			Status:         "error",
+			Message:        "Failed to start transaction.",
+			UpdatedBalance: sender.Balance,
 		})
 		return
 	}
@@ -194,8 +202,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 				session.AbortTransaction(context.Background())
 				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(Transaction{
-					Status:  "error",
-					Message: "Failed to update balance (deposit).",
+					Status:         "error",
+					Message:        "Failed to update balance (deposit).",
+					UpdatedBalance: sender.Balance,
 				})
 				return
 			}
@@ -211,8 +220,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 				session.AbortTransaction(context.Background())
 				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(Transaction{
-					Status:  "error",
-					Message: "Failed to update balance (withdrawal).",
+					Status:         "error",
+					Message:        "Failed to update balance (withdrawal).",
+					UpdatedBalance: sender.Balance,
 				})
 				return
 			}
@@ -226,8 +236,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 			session.AbortTransaction(context.Background())
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(Transaction{
-				Status:  "error",
-				Message: "Failed to update sender's balance.",
+				Status:         "error",
+				Message:        "Failed to update sender's balance.",
+				UpdatedBalance: sender.Balance,
 			})
 			return
 		}
@@ -239,8 +250,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 			session.AbortTransaction(context.Background())
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(Transaction{
-				Status:  "error",
-				Message: "Failed to update receiver's balance.",
+				Status:         "error",
+				Message:        "Failed to update receiver's balance.",
+				UpdatedBalance: sender.Balance,
 			})
 			return
 		}
@@ -262,8 +274,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 		session.AbortTransaction(context.Background())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Transaction{
-			Status:  "error",
-			Message: "Failed to insert transaction record.",
+			Status:         "error",
+			Message:        "Failed to insert transaction record.",
+			UpdatedBalance: sender.Balance,
 		})
 		return
 	}
@@ -274,8 +287,20 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 		session.AbortTransaction(context.Background())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Transaction{
+			Status:         "error",
+			Message:        "Failed to commit transaction.",
+			UpdatedBalance: sender.Balance,
+		})
+		return
+	}
+
+	// Find current balance of sender
+	err = usersCollection.FindOne(context.Background(), bson.M{"user_id": senderID}).Decode(&sender)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(Transaction{
 			Status:  "error",
-			Message: "Failed to commit transaction.",
+			Message: "Failed to fetch sender's data.",
 		})
 		return
 	}
@@ -283,7 +308,8 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 	// Return success response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(Transaction{
-		Status:  "success",
-		Message: "Transaction completed successfully.",
+		Status:         "success",
+		Message:        "Transaction completed successfully.",
+		UpdatedBalance: sender.Balance,
 	})
 }
