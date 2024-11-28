@@ -245,8 +245,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (response.ok) {
               alert('Transaction completed successfully!');
               formContainer.innerHTML = '';
+              userData.balance = (await response.json()).updated_balance ;
+              renderDashboard() ;
               // After transaction, refresh the transactions and dashboard
-              await fetchTransactionsAndUpdateState();
+              //await fetchTransactionsAndUpdateState();
             } else {
               alert('Transaction failed. Please try again.');
             }
@@ -265,26 +267,6 @@ document.addEventListener('DOMContentLoaded', function () {
       sendMoneyButton.disabled = false;
     });
   }
-
-  async function fetchTransactionsAndUpdateState() {
-    try {
-      // Fetch updated user data and transactions
-      const user_id = userData.user_id ;
-      const userResponse = await fetch('http://localhost:8080/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userData.user_id, email: userData.email, password: userData.password }),
-      });
-      if (userResponse.ok) {
-        let userDetail = await userResponse.json();
-        userData.balance = userDetail.data.balance ; 
-        renderDashboard(); // Refresh the dashboard
-      }
-    } catch (error) {
-      console.error('Error fetching updated data:', error);
-    }
-  }
-  
 
   function renderTransactions(transactions) {
     const tableContainer = document.querySelector('.table-container');
