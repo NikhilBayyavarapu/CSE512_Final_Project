@@ -118,10 +118,11 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Status:  "success",
 		Message: "Login successful.",
 		Data: map[string]any{
-			"user_id": userID,
-			"email":   email,
-			"name":    result["first_name"].(string) + " " + result["last_name"].(string),
-			"balance": result["current_balance"],
+			"user_id":        userID,
+			"email":          email,
+			"name":           result["first_name"].(string) + " " + result["last_name"].(string),
+			"balance":        result["current_balance"],
+			"account_number": result["account_number"],
 		},
 	})
 }

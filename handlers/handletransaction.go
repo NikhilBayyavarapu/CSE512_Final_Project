@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"context"
+	"cse512/datamodels"
 	"cse512/db"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,6 +17,24 @@ type Transaction struct {
 	Status         string `json:"status"`
 	Message        string `json:"message"`
 	UpdatedBalance int    `json:"updated_balance"`
+}
+
+// insertErrorTransaction inserts a failed transaction record into the database
+func insertErrorTransaction(senderID, receiverID, amount int, remarks string, timestamp int64, status string) {
+	client := db.GetClient()
+	transactionsCollection := client.Database("bank").Collection("transactions")
+
+	failedTransaction := datamodels.Transaction{
+		SenderID:      senderID,
+		ReceiverID:    receiverID,
+		Amount:        amount,
+		Remarks:       remarks,
+		DateTimeStamp: timestamp,
+		Status:        status,
+	}
+
+	transactionsCollection.InsertOne(context.Background(), failedTransaction)
+	fmt.Println("Failed transaction logged.")
 }
 
 // PerformTransaction handles a transaction between sender and receiver (withdraw, deposit, or transfer)
@@ -50,10 +70,9 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&transaction)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(Transaction{
-			Status:  "error",
-			Message: "Failed to parse JSON.",
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Failed to parse JSON.",
 		})
 		return
 	}
@@ -63,7 +82,7 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 	amount := transaction.Amount
 	remarks := transaction.Remarks
 	timestamp := transaction.Timestamp
-	// accountNumber := transaction.AccountNumber
+	accountNumber := transaction.AccountNumber
 
 	// Validate fields
 	if amount == 0 {
@@ -83,39 +102,29 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 
 	// Find sender's data including account number and balance
 	var sender struct {
-		// AccountNumber int `bson:"account_number"`
 		Balance int `bson:"current_balance"`
 	}
 
 	err = usersCollection.FindOne(context.Background(), bson.M{"user_id": senderID}).Decode(&sender)
 	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
 		if err == mongo.ErrNoDocuments {
-			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(Transaction{
 				Status:         "error",
 				Message:        "Sender not found.",
 				UpdatedBalance: sender.Balance,
 			})
+			insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 		} else {
-			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(Transaction{
 				Status:         "error",
 				Message:        "Failed to fetch sender's data.",
 				UpdatedBalance: sender.Balance,
 			})
+			insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 		}
 		return
 	}
-
-	// Check if sender's account number matches
-	// if sender.AccountNumber != accountNumber {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	json.NewEncoder(w).Encode(Transaction{
-	// 		Status:  "error",
-	// 		Message: "Sender's account number does not match.",
-	// 	})
-	// 	return
-	// }
 
 	// Check if sender has enough balance for withdrawal
 	if sender.Balance < amount && senderID != receiverID {
@@ -125,6 +134,7 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 			Message:        "Insufficient balance.",
 			UpdatedBalance: sender.Balance,
 		})
+		insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 		return
 	}
 
@@ -135,33 +145,35 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 	err = usersCollection.FindOne(context.Background(), bson.M{"user_id": receiverID}).Decode(&receiver)
 	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
 		if err == mongo.ErrNoDocuments {
-			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(Transaction{
 				Status:         "error",
 				Message:        "Receiver not found.",
 				UpdatedBalance: sender.Balance,
 			})
+			insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 		} else {
-			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(Transaction{
 				Status:         "error",
 				Message:        "Failed to fetch receiver's data.",
 				UpdatedBalance: sender.Balance,
 			})
+			insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 		}
 		return
 	}
 
 	// Check if receiver's account number matches
-	// if receiver.AccountNumber != accountNumber {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	json.NewEncoder(w).Encode(Transaction{
-	// 		Status:  "error",
-	// 		Message: "Receiver's account number does not match.",
-	// 	})
-	// 	return
-	// }
+	if receiver.AccountNumber != accountNumber {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(Transaction{
+			Status:  "error",
+			Message: "Receiver's account number does not match.",
+		})
+		insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
+		return
+	}
 
 	// Start MongoDB session to ensure atomicity
 	session, err := client.StartSession()
@@ -192,11 +204,10 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 	if senderID == receiverID {
 		if amount > 0 {
 			// Deposit: Increase balance
-			receiverUpdate := bson.M{"$inc": bson.M{"current_balance": amount}}
 			_, err := usersCollection.UpdateOne(
 				context.Background(),
 				bson.M{"user_id": receiverID},
-				receiverUpdate,
+				bson.M{"$inc": bson.M{"current_balance": amount}},
 			)
 			if err != nil {
 				session.AbortTransaction(context.Background())
@@ -206,15 +217,15 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 					Message:        "Failed to update balance (deposit).",
 					UpdatedBalance: sender.Balance,
 				})
+				insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 				return
 			}
 		} else {
 			// Withdrawal: Decrease balance
-			senderUpdate := bson.M{"$inc": bson.M{"current_balance": -amount}} // amount is negative for withdrawal
 			_, err := usersCollection.UpdateOne(
 				context.Background(),
 				bson.M{"user_id": senderID},
-				senderUpdate,
+				bson.M{"$inc": bson.M{"current_balance": amount}},
 			)
 			if err != nil {
 				session.AbortTransaction(context.Background())
@@ -224,14 +235,13 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 					Message:        "Failed to update balance (withdrawal).",
 					UpdatedBalance: sender.Balance,
 				})
+				insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 				return
 			}
 		}
 	} else {
 		// Standard transfer: sender != receiver
-		// Update sender's balance (decrease amount)
-		senderUpdate := bson.M{"$inc": bson.M{"current_balance": -amount}}
-		_, err := usersCollection.UpdateOne(context.Background(), bson.M{"user_id": senderID}, senderUpdate)
+		_, err := usersCollection.UpdateOne(context.Background(), bson.M{"user_id": senderID}, bson.M{"$inc": bson.M{"current_balance": -amount}})
 		if err != nil {
 			session.AbortTransaction(context.Background())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -240,12 +250,11 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 				Message:        "Failed to update sender's balance.",
 				UpdatedBalance: sender.Balance,
 			})
+			insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 			return
 		}
 
-		// Update receiver's balance (increase amount)
-		receiverUpdate := bson.M{"$inc": bson.M{"current_balance": amount}}
-		_, err = usersCollection.UpdateOne(context.Background(), bson.M{"user_id": receiverID}, receiverUpdate)
+		_, err = usersCollection.UpdateOne(context.Background(), bson.M{"user_id": receiverID}, bson.M{"$inc": bson.M{"current_balance": amount}})
 		if err != nil {
 			session.AbortTransaction(context.Background())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -254,58 +263,47 @@ func PerformTransaction(w http.ResponseWriter, r *http.Request) {
 				Message:        "Failed to update receiver's balance.",
 				UpdatedBalance: sender.Balance,
 			})
+			insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 			return
 		}
-	}
-
-	// Insert transaction record
-	transactionRecord := bson.M{
-		"transaction_id": 1, // You can increment this or use auto-generated ID
-		"sender_id":      senderID,
-		"receiver_id":    receiverID,
-		"amount":         amount,
-		"remarks":        remarks,
-		"dateTimeStamp":  timestamp,
-		"status":         "completed",
-	}
-
-	_, err = transactionsCollection.InsertOne(context.Background(), transactionRecord)
-	if err != nil {
-		session.AbortTransaction(context.Background())
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(Transaction{
-			Status:         "error",
-			Message:        "Failed to insert transaction record.",
-			UpdatedBalance: sender.Balance,
-		})
-		return
 	}
 
 	// Commit the transaction
 	err = session.CommitTransaction(context.Background())
 	if err != nil {
-		session.AbortTransaction(context.Background())
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Transaction{
 			Status:         "error",
 			Message:        "Failed to commit transaction.",
 			UpdatedBalance: sender.Balance,
 		})
+		insertErrorTransaction(senderID, receiverID, amount, remarks, timestamp, "failed")
 		return
 	}
 
-	// Find current balance of sender
-	err = usersCollection.FindOne(context.Background(), bson.M{"user_id": senderID}).Decode(&sender)
+	// Log transaction in the transactions collection
+	completedTransaction := datamodels.Transaction{
+		SenderID:      senderID,
+		ReceiverID:    receiverID,
+		Amount:        amount,
+		Remarks:       remarks,
+		DateTimeStamp: timestamp,
+		Status:        "success",
+	}
+
+	_, err = transactionsCollection.InsertOne(context.Background(), completedTransaction)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Transaction{
-			Status:  "error",
-			Message: "Failed to fetch sender's data.",
+			Status:         "error",
+			Message:        "Failed to log transaction.",
+			UpdatedBalance: sender.Balance,
 		})
 		return
 	}
 
-	// Return success response
+	err = usersCollection.FindOne(context.Background(), bson.M{"user_id": senderID}).Decode(&sender)
+	// Success response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(Transaction{
 		Status:         "success",

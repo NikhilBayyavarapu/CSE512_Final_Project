@@ -23,4 +23,4 @@ docker exec -it router-1 mongo --eval "sh.startBalancer();"
 docker exec -it router-1 mongo --eval "sh.shardCollection('bank.users', { user_id: 'hashed' });"
 
 # Shard the 'transactions' collection on the hashed 'transaction_id' field
-docker exec -it router-1 mongo --eval "sh.shardCollection('bank.transactions', { transaction_id: 'hashed' });"
+docker exec -it router-1 mongo --eval "sh.shardCollection('bank.transactions', { _id: 'hashed' });"

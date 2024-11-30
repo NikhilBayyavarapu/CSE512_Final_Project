@@ -1,0 +1,4 @@
+node_modules/
+mock_data_userInfo.json
+mock_data_userInfo_pwd.json
+mock_transactions.json
