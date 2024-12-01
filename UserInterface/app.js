@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
           </tr>
           <tr>
             <th>Account Number:</th>
-            <td>${userData.accountNumber}</td>
+            <td>${userData.account_number || 'Not Available'}</td>
           </tr>
           <tr>
             <th>Current Balance:</th>
