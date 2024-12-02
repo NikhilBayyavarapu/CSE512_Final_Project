@@ -269,6 +269,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderTransactions(transactions) {
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    });
+
     const tableContainer = document.querySelector('.table-container');
     tableContainer.innerHTML = `
       <h2>Transaction History</h2>
@@ -293,13 +298,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
               // Format the amount for display
               const amountStyle = amount < 0 ? 'color: red;' : '';
+              const formattedAmount = formatter.format(Math.abs(amount));
               const statusIcon = txn.status === 'completed' ? '✔' : '✘';
 
               return `
                 <tr>
                   <td>${new Date(txn.dateTimeStamp * 1000).toLocaleDateString()}</td>
                   <td>${txn.remarks}</td>
-                  <td style="${amountStyle}">${amount < 0 ? '-' : ''}$${Math.abs(amount)}</td>
+                  <td style="${amountStyle}">${amount < 0 ? '-' : ''}${formattedAmount}</td>
                   <td style="text-align: center;">${statusIcon}</td>
                 </tr>
               `;
