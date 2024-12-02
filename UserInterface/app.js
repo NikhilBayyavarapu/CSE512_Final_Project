@@ -1,8 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
   const app = document.getElementById('app');
-
+  const allowedPorts = [8080];
   let userData = null;
 
+  const selectedPort = allowedPorts[Math.floor(Math.random() * allowedPorts.length)];
+  const baseURL = `http://localhost:${selectedPort}`;
   const staticTransactions = [
     { date: '2024-01-01', description: 'Deposit', amount: '$500' },
     { date: '2024-01-02', description: 'Withdrawal', amount: '$100' },
@@ -31,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const password = document.getElementById('password').value;
 
       try {
-        const response = await fetch('http://localhost:8080/login', {
+        const response = await fetch(`${baseURL}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, email, password }),
@@ -135,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       console.log(userData) ;
       const transactionsResponse = await fetch(
-        `http://localhost:8080/transactions?sender_id=${userData.user_id}`,
+        `${baseURL}/transactions?sender_id=${userData.user_id}`,
         { method: 'GET', headers: { 'Content-Type': 'application/json' } }
       );
 
@@ -273,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
   
           try {
             // Hit the /handletransaction API
-            const response = await fetch('http://localhost:8080/transaction', {
+            const response = await fetch(`${baseURL}/transaction`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
@@ -361,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    const url = `http://localhost:8080/monthdata?user_id=${userData.user_id}&month=${month}&year=${year}`;
+    const url = `${baseURL}/monthdata?user_id=${userData.user_id}&month=${month}&year=${year}`;
     fetch(url)
       .then((response) => {
         if (!response.ok) {
