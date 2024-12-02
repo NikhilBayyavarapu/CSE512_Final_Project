@@ -222,7 +222,7 @@ func getMonthlyTransactions(userID int, month int, year int, results chan<- time
 
 func testMonthlyTransactions() {
 	concurrentWorkers := 100 // Number of concurrent workers (requests sent simultaneously)
-	totalRequests := 10000   // Total requests to send
+	totalRequests := 1000    // Total requests to send
 	counter := 0
 
 	// Monthly transaction test
@@ -317,7 +317,7 @@ func getTransactions(payload TransactionTest, results chan<- time.Duration, fail
 
 func testTransaction() {
 	concurrentWorkers := 100 // Number of concurrent workers (requests sent simultaneously)
-	totalRequests := 10000   // Total requests to send
+	totalRequests := 1000    // Total requests to send
 	counter := 0
 
 	senderid := rand.Intn(200000-100+1) + 100 // Between 100 and 200000 inclusive
@@ -369,5 +369,7 @@ func testTransaction() {
 }
 
 func main() {
-	testLogin()
+	// testLogin()
+	// testMonthlyTransactions()
+	testTransaction()
 }

@@ -49,6 +49,11 @@ User ID: 100, Email: Patrick_Hackett31@gmail.com, Password: WHeI1fEFjuDoi3o
 Reciever Name: Humberto Bernhard, Receiver ID: 50664, Email: Abelardo.Rodriguez-OConner59@gmail.com, Account Number: 694332936, Amount: 20
 
 ### Example for monthly data of a user.
-Login with User ID: 100, Email: Patrick_Hackett31@gmail.com, Password: WHeI1fEFjuDoi3o, then 
+Login with User ID: 100, Email: Patrick_Hackett31@gmail.com, Password: WHeI1fEFjuDoi3o, then select month: August, year: 2022
 
+## 5) Testing Response times
+To test response times of various functionalities, first start 6 backend servers on ports 8080-8085.
 
+Start a server using ```./server.exe -p {port_number}```
+
+Once all servers are up and running, run ```go run responsetime/main.go```. Change the number of requests and the functionality to be tested in *responsetime/main.go* file.
