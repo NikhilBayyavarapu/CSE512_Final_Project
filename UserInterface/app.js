@@ -39,8 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (response.ok) {
           userData = (await response.json()).data;
+          console.log(userData);
           userData.user_id = userId;
-          userData.password = password ;
           renderDashboard();
         } else {
           errorMessage.style.display = 'block';
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
           </tr>
           <tr>
             <th>Account Number:</th>
-            <td>${userData.accountNumber}</td>
+            <td>${userData.account_number}</td>
           </tr>
           <tr>
             <th>Current Balance:</th>

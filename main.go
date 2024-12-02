@@ -31,6 +31,7 @@ func main() {
 	router.HandleFunc("/login", handlers.HandleLogin).Methods("POST", "OPTIONS")
 	router.HandleFunc("/transactions", handlers.HandleTransaction).Methods("GET", "OPTIONS")
 	router.HandleFunc("/transaction", handlers.PerformTransaction).Methods("POST", "OPTIONS")
+	router.HandleFunc("/monthdata", handlers.GetMonthData).Methods("GET", "OPTIONS")
 
 	fmt.Printf("Starting server on port %d\n", *port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), router); err != nil {
