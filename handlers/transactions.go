@@ -96,10 +96,10 @@ func HandleTransaction(w http.ResponseWriter, r *http.Request) {
 	var transactions []TransactionResponse
 	for cursor.Next(context.Background()) {
 		var transaction struct {
-			Status    string `bson:"status"`
-			Amount    int    `bson:"amount"`
-			TimeStamp int    `bson:"dateTimeStamp"`
-			Remarks   string `bson:"remarks"`
+			Status    string `bson:"status" json:"status"`
+			Amount    int    `bson:"amount" json:"amount"`
+			TimeStamp int    `bson:"dateTimeStamp" json:"dateTimeStamp"`
+			Remarks   string `bson:"remarks" json:"remarks"`
 		}
 		if err := cursor.Decode(&transaction); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
