@@ -37,3 +37,11 @@ To start a server, run the *server.exe* executable with *-port* flag. To handle 
 Eg: ```./server.exe -port 8080```
 
 Now, navigate to frontend and explore the functionalities !!!
+
+### Example data for login
+User ID: 100, Email: Patrick_Hackett31@gmail.com, Password: WHeI1fEFjuDoi3o
+
+### Example data for transaction
+Reciever Name: Humberto Bernhard, Receiver ID: 50664, Email: Abelardo.Rodriguez-OConner59@gmail.com, Account Number: 694332936, Amount: 20
+
+

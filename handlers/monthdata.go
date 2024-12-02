@@ -146,7 +146,7 @@ func GetMonthData(w http.ResponseWriter, r *http.Request) {
 	// Check if no transactions were found
 	if len(responses) == 0 {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error": "No transactions found for the specified criteria"}`))
+		w.Write([]byte(`{"error": "No transactions found for the specified time period"}`))
 		return
 	}
 
