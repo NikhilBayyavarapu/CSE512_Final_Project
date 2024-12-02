@@ -14,6 +14,10 @@ Navigate to scripts folder. Then run **main.sh** script. Make sure the script ha
 
 This script will start all the docker containers with 3 config-servers, 3 routers and 3 shard-replica sets (each set with 3 nodes).
 
+To stop the containers run **stop_containers.sh** script.
+
+To restart the containers again run **start_containters.sh** script.
+
 ## 3) Inserting Data
 Visit the URL: https://drive.google.com/drive/folders/1BhCH97EacCjACIv4A69JWZjUbs4k6XWE
 Download all the json files which contain information about 200,000 users and 1.5 million transactions.
