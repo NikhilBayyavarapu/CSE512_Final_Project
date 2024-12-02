@@ -4,7 +4,6 @@ import (
 	"context"
 	"cse512/db"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -59,8 +58,6 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	userID := credentials.UserID
 	email := credentials.Email
 	password := credentials.Password
-
-	fmt.Println("Received login request for user:", userID, "with email:", email, "and password:", password)
 
 	if userID == "" || email == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)

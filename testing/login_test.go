@@ -8,6 +8,12 @@ import (
 	"testing"
 )
 
+type LoginRequest struct {
+	UserID   string `json:"user_id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type TestUser struct {
 	UserID   int    `json:"user_id"`
 	Email    string `json:"email"`

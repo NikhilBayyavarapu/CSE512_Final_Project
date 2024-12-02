@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	port := flag.Int("port", 0, "Port to run the server on")
-	help := flag.Bool("help", false, "Use port flag to specify port to run the server on")
+	port := flag.Int("p", 0, "Port to run the server on")
+	help := flag.Bool("help", false, "Use p flag to specify port to run the server on")
 	flag.Parse()
 
 	if *help {
@@ -21,7 +21,7 @@ func main() {
 	}
 
 	if *port == 0 {
-		fmt.Println("Please specify a port to run the server on using -port flag")
+		fmt.Println("Please specify a port to run the server on using -p flag")
 		return
 	}
 
