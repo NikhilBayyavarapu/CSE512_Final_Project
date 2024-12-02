@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderLoginForm() {
     app.innerHTML = `
-      <h1>Welcome to MyBank</h1>
+      <h1>Welcome to Chakravarthi Bank</h1>
       <form id="loginForm">
         <input type="text" id="userId" placeholder="User ID" required />
         <input type="email" id="email" placeholder="Email" required />
