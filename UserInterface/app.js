@@ -85,6 +85,42 @@ document.addEventListener('DOMContentLoaded', function () {
         <h2>Transaction History</h2>
         <p>Loading transactions...</p>
       </div>
+
+      <div id="monthlyReportContainer">
+  <h2>Download Monthly Report</h2>
+  <form id="downloadForm" style="display: flex; align-items: center; gap: 10px;">
+    <label for="month" style="margin-right: 5px;">Month:</label>
+    <select id="month" required style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+      <option value="" disabled selected>Select</option>
+      <option value="1">January</option>
+      <option value="2">February</option>
+      <option value="3">March</option>
+      <option value="4">April</option>
+      <option value="5">May</option>
+      <option value="6">June</option>
+      <option value="7">July</option>
+      <option value="8">August</option>
+      <option value="9">September</option>
+      <option value="10">October</option>
+      <option value="11">November</option>
+      <option value="12">December</option>
+    </select>
+    <label for="year" style="margin-left: 10px; margin-right: 5px;">Year:</label>
+    <input
+      type="number"
+      id="year"
+      min="2020"
+      max="2100"
+      required
+      placeholder="e.g. 2023"
+      style="padding: 5px; width: 100px; border-radius: 5px; border: 1px solid #ccc;"
+    />
+    <button type="submit" style="padding: 5px 10px; border-radius: 5px; background-color: #0066cc; color: white; border: none; cursor: pointer;">
+      Download Now
+    </button>
+  </form>
+</div>
+
       <button id="logout">Logout</button>
     `;
 
@@ -94,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.getElementById('sendMoneyButton').addEventListener('click', openSendMoneyForm);
+    document.getElementById('downloadForm').addEventListener('submit', downloadMonthlyReport);
 
     try {
       console.log(userData) ;
@@ -312,6 +349,41 @@ document.addEventListener('DOMContentLoaded', function () {
   function validateEmail(email) {
     const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return re.test(String(email).toLowerCase());
+  }
+  function downloadMonthlyReport(e) {
+    e.preventDefault();
+
+    const month = document.getElementById('month').value;
+    const year = document.getElementById('year').value;
+
+    if (!month || !year) {
+      alert('Please enter a valid month and year.');
+      return;
+    }
+
+    const url = `http://localhost:8080/monthdata?user_id=${userData.user_id}&month=${month}&year=${year}`;
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((data) => {
+            throw new Error(data.error || 'Failed to fetch the report');
+          });
+        }
+        return response.blob();
+      })
+      .then((blob) => {
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `Monthly_Report_${month}_${year}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch((error) => {
+        console.error('Error downloading report:', error);
+        alert(error.message);
+      });
   }
 
   renderLoginForm();
