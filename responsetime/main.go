@@ -67,7 +67,7 @@ func sendLoginRequest(payload LoginRequest, results chan<- time.Duration, failur
 
 func testLogin() {
 	concurrentWorkers := 100 // Number of concurrent workers (requests sent simultaneously)
-	totalRequests := 10000   // Total requests to send
+	totalRequests := 1000    // Total requests to send
 	counter := 0
 
 	payloads := []LoginRequest{
@@ -369,5 +369,5 @@ func testTransaction() {
 }
 
 func main() {
-	testMonthlyTransactions()
+	testLogin()
 }

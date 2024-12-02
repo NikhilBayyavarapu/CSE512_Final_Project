@@ -44,4 +44,7 @@ User ID: 100, Email: Patrick_Hackett31@gmail.com, Password: WHeI1fEFjuDoi3o
 ### Example data for transaction
 Reciever Name: Humberto Bernhard, Receiver ID: 50664, Email: Abelardo.Rodriguez-OConner59@gmail.com, Account Number: 694332936, Amount: 20
 
+### Example for monthly data of a user.
+Login with User ID: 100, Email: Patrick_Hackett31@gmail.com, Password: WHeI1fEFjuDoi3o, then 
+
 

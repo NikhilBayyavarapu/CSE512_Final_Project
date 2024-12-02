@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 type MonthlyTransaction struct {
@@ -146,7 +148,7 @@ func GetMonthData(w http.ResponseWriter, r *http.Request) {
 	// Check if no transactions were found
 	if len(responses) == 0 {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "No transactions found for the specified time period"}`))
+		w.Write([]byte(`{"message": "You have not made any transactions this month."}`))
 		return
 	}
 
@@ -158,18 +160,22 @@ func GetMonthData(w http.ResponseWriter, r *http.Request) {
 	writer := csv.NewWriter(w)
 
 	// Write the header row
-	err = writer.Write([]string{"Sender ID", "Receiver ID", "Amount", "Remarks", "DateTimeStamp", "Status"})
+	err = writer.Write([]string{"Sender ID", "Receiver ID", "Amount", "Remarks", "Date", "Status"})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error writing CSV header: %v", err), http.StatusInternalServerError)
 		return
 	}
 
+	p := message.NewPrinter(language.English)
+
 	// Write the data rows
 	for _, transaction := range responses {
+		formattedAmount := p.Sprintf("$%.2f", float64(transaction.Amount))
+
 		err := writer.Write([]string{
 			strconv.Itoa(transaction.SenderID),
 			strconv.Itoa(transaction.ReceiverID),
-			strconv.Itoa(transaction.Amount),
+			formattedAmount,
 			transaction.Remarks,
 			transaction.DateTimeStamp,
 			transaction.Status,
