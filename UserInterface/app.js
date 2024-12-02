@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
               // Format the amount for display
               const amountStyle = amount < 0 ? 'color: red;' : '';
-              const statusIcon = txn.status === 'completed' ? '✔' : '✘';
+              const statusIcon = (txn.status == 'completed' || txn.status == 'success') ? '✔' : '✘';
 
               return `
                 <tr>
