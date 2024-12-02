@@ -36,9 +36,9 @@ For users collection, create index on *user_id* key.
 
 ## 4) Starting the Backend server
 
-To start a server, run the *server.exe* executable with *-port* flag. To handle more load, run multiple server instances on different ports.
+To start a server, run the *server.exe* executable with *-p* flag. To handle more load, run multiple server instances on different ports.
 
-Eg: ```./server.exe -port 8080```
+Eg: ```./server.exe -p 8080```
 
 Now, navigate to frontend and explore the functionalities !!!
 
